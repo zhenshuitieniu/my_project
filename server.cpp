@@ -167,7 +167,7 @@ static void poll_event_loop(epoll_ctx *ctx)
 {
     worker_attribute *work_attr = (worker_attribute *)ctx->data;
 
-    // notify
+    // notify all handlers
     int epoll_fd = ctx->epoll_fd;
     for (int index = 0; index < work_attr->pair_fd.size(); index ++) {
         PRINT_INFO("notify epoll_fd: %d pair_fd: %d\n", epoll_fd, work_attr->pair_fd[index]);
@@ -177,7 +177,7 @@ static void poll_event_loop(epoll_ctx *ctx)
         }
     }
 
-	while(!event_dispatch(ctx));
+    while(!event_dispatch(ctx));
 }
 
 int socket_connfd(int sock_fd)
