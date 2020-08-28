@@ -300,7 +300,7 @@ int event_dispatch(epoll_ctx *ctx)
     }
 
     if (record != nfds)
-        PRINT_ERROR("nfds:%d record: %d\n", nfds, record);
+        PRINT_DEBUG("nfds:%d record: %d\n", nfds, record);
     return 0;
 }
 

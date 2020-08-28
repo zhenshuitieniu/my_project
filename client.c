@@ -1,5 +1,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/tcp.h> // TCP_NODELAY
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <sys/epoll.h>
@@ -42,7 +43,7 @@ static int connect_server()
     int enable = 1;
     if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&enable, sizeof(enable)) < 0)
     {
-        cout << "ERROR: TCP_NODELAY SETTING ERROR!\n";
+        PRINT_ERROR("ERROR: TCP_NODELAY SETTING ERROR\n");
         close(fd);
         return -1;
     }
@@ -58,13 +59,11 @@ static int connect_server()
         return -1;
     }
 
-#if 1
     struct timeval time;
     time.tv_sec = 3;
     time.tv_usec = 0;
     setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &time,sizeof(time));
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &time,sizeof(time));
-#endif
 
     return fd;
 }
@@ -124,11 +123,12 @@ void* event_loop (void* arg)
     return NULL;
 }
 
+static bool test_finish_flag = false;
 bool print (int flag)
 {
     PRINT_INFO("start\n");
 
-    while (1) {
+    while (!test_finish_flag) {
 
         uint64_t start = 0;
         for (int i = 0; i < g_worker_attr_vector.size(); i++) {
@@ -144,6 +144,8 @@ bool print (int flag)
 
         PRINT_INFO("iops: %d\n", (end - start) / 5 );
     }
+
+    PRINT_INFO("finish\n");
 
     return 0;
 }
@@ -176,12 +178,14 @@ int main()
 
     pthread_barrier_wait(&barrier);
 
-    std::future<bool> fut = std::async(print, 0);
-    fut.get(); // waits for print return
+    std::future<bool> fut = std::async(std::launch::async, print, 0);
 
     for (int i = 0; i < g_worker_attr_vector.size(); i++) {
         pthread_join(g_worker_attr_vector[i].thr, NULL);
     }
+
+    test_finish_flag = true;
+    fut.get(); // waits for print return
 
     pthread_barrier_destroy(&barrier);
 
